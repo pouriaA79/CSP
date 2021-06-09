@@ -92,17 +92,70 @@ def constraints_str(matrix, i, j, num, num_columns):
 
     for k in range(num_columns):
 
-        if i != k and "-" not in matrix[k] and '-' not in str_row and str_row == matrix[k]:
+        if i != k and ("-" not in matrix[k] and '-' not in str_row and (str_row == matrix[k]).all()):
             return True
-        if j != k and "-" not in matrix[:, k] and '-' not in str_col and str_col == matrix[:, k]:
+        if j != k and ("-" not in matrix[:, k] and '-' not in str_col and (str_col == matrix[:, k]).all()):
             return True
     return False
 
 
+def get_possible_values(puzzle, num, i, j):
+    number = 0
+    domain = []
+    for k in range(2):
+        if constraints_row(puzzle, i, j, k, num):
+            continue
+        elif constraints_col(puzzle, i, j, k, num):
+            continue
+        elif constraints_repeat(puzzle, i, j, k, num):
+            continue
+        elif constraints_str(puzzle, i, j, k, num):
+            continue
+        else:
+            domain.append(k)
+            number += 1
+    return number, domain
+
+
+def forwardcheking(puzzle, num):
+    mrv_values = {}
+    num_mrv = 0
+    flag = False
+    for i in range(num):
+        for j in range(num):
+            if puzzle[i][j] == '-':
+                tmp, domain = get_possible_values(puzzle, num, i, j)
+                if len(domain) == 0:
+                    flag = True
+                mrv_values.setdefault(num_mrv, []).append(tmp)
+                mrv_values.setdefault(num_mrv, []).append(domain)
+                mrv_values.setdefault(num_mrv, []).append((i, j))
+                num_mrv += 1
+    sort = sorted(mrv_values.items(), key=lambda x: x[1], reverse=False)
+    print(sort)
+    return sort, flag
+
+
+def MRV(puzzle, value, use):
+    use.append(value[0])
+    i, j = value[0][1][2]
+    # print(value[0][1][1][0], i ,j)
+    puzzle[i][j] = str(value[0][1][1][0])
+    print(puzzle)
+    value.remove(value[0])
+
+    return value, puzzle, use
+
+
 if __name__ == "__main__":
     file_names = "puzzle0.txt"
+    used = []
+    # wrong = {}
     puzzle_matrix, num_columns = read_file(file_names)
     arr = np.array(puzzle_matrix)
     puzzle_matrix = arr.reshape(num_columns, num_columns)
-    print(puzzle_matrix[1])
-    # if "2" in puzzle_matrix[:, 1] : print(5)
+    values, flag_end = forwardcheking(puzzle_matrix, num_columns)
+
+    while not flag_end:
+        v, puzzle_matrix, u = MRV(puzzle_matrix, values, used)
+        values, flag_end = forwardcheking(puzzle_matrix, num_columns)
